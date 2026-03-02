@@ -15,6 +15,11 @@
 | 代理检测 | ✅ | ✅ | ✅ |
 | 进程清理 | ✅ | ✅ | ✅ |
 | 日志记录 | ✅ | ✅ | ✅ |
+| 定时健康检查 | ✅ | ⏳ | ⏳ |
+| 崩溃自动重启 | ✅ | ⏳ | ⏳ |
+| 幂等启动 | ✅ | ⏳ | ⏳ |
+
+> ⏳ = 计划中，目前仅 Windows 完整支持
 
 ## 📋 前置要求
 
@@ -70,6 +75,9 @@ chmod +x setup-linux.sh
 | `PROXY_PORT` | `7890` | HTTP 代理端口 |
 | `PROXY_WAIT` | `20` | 代理初始等待时间（秒） |
 | `GATEWAY_PORT` | `18789` | Gateway 端口 |
+| `HEALTH_CHECK_INTERVAL` | `30` | 健康检查间隔（分钟） |
+| `RESTART_COUNT` | `3` | 失败后重启次数 |
+| `RESTART_INTERVAL` | `5` | 重启间隔（分钟） |
 
 ### Windows 参数
 
@@ -77,7 +85,10 @@ chmod +x setup-linux.sh
 powershell -ExecutionPolicy Bypass -File setup-windows.ps1 `
   -UseProxy $true `
   -ProxyPort "7890" `
-  -ProxyWaitSeconds 20
+  -ProxyWaitSeconds 20 `
+  -HealthCheckInterval 30 `
+  -RestartCount 3 `
+  -RestartInterval 5
 ```
 
 ### macOS / Linux 参数
