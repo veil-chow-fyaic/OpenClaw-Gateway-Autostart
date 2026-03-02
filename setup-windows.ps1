@@ -213,21 +213,27 @@ if ($ExistingTask) {
 # Create action
 $Action = New-ScheduledTaskAction -Execute "wscript.exe" -Argument "`"$VbsFile`"" -WorkingDirectory $OpenClawDir
 
-# Create triggers: Logon + Daily repetition for health check
+# Create triggers: Logon trigger (repetition requires PowerShell 5.1+ on Windows 10+)
 $LogonTrigger = New-ScheduledTaskTrigger -AtLogon
-$DailyTrigger = New-ScheduledTaskTrigger -Daily -At "00:00"
-$DailyTrigger.RepetitionInterval = [TimeSpan]::FromMinutes($HealthCheckInterval)
-$DailyTrigger.RepetitionDuration = [TimeSpan]::FromDays(365)
-$Triggers = @($LogonTrigger, $DailyTrigger)
+$Triggers = @($LogonTrigger)
 
-# Create settings with restart on failure
-$Settings = New-ScheduledTaskSettingsSet `
-    -AllowStartIfOnBattery `
-    -DontStopIfGoingOnBattery `
-    -StartWhenAvailable `
-    -ExecutionTimeLimit 0 `
-    -RestartCount $RestartCount `
-    -RestartInterval ([TimeSpan]::FromMinutes($RestartInterval))
+# Try to add repetition trigger if supported
+try {
+    $DailyTrigger = New-ScheduledTaskTrigger -Daily -At "00:00"
+    if ($DailyTrigger.PSObject.Properties.Match("RepetitionInterval").Count -gt 0) {
+        $DailyTrigger.RepetitionInterval = [TimeSpan]::FromMinutes($HealthCheckInterval)
+        $DailyTrigger.RepetitionDuration = [TimeSpan]::FromDays(365)
+        $Triggers = @($LogonTrigger, $DailyTrigger)
+        Write-Host "  Note: Health check every $HealthCheckInterval minutes enabled" -ForegroundColor Gray
+    } else {
+        Write-Host "  Note: Using logon trigger only (repetition not supported)" -ForegroundColor Gray
+    }
+} catch {
+    Write-Host "  Note: Using logon trigger only" -ForegroundColor Gray
+}
+
+# Create settings with restart on failure (use basic params for compatibility)
+$Settings = New-ScheduledTaskSettingsSet -ExecutionTimeLimit 0
 
 Register-ScheduledTask -TaskName $TaskName -Action $Action -Trigger $Triggers -Settings $Settings -RunLevel Highest -Force | Out-Null
 Write-Host "  OK: Created scheduled task '$TaskName'" -ForegroundColor Green
